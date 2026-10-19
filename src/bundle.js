@@ -193,7 +193,7 @@
 
   function formatLua(state) {
     var lines = [];
-    lines.push('local hg = require("hyprglass")');
+    lines.push('local hg = hl.plugin.hyprglass');
     lines.push('');
     lines.push('hg.config({');
     lines.push('  enabled = ' + (state.enabled ? 'true' : 'false') + ',');

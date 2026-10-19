@@ -81,7 +81,7 @@ export function createDefaultState() {
     enabled: true,
     default_theme: defaultTheme,
     default_preset: defaultPreset,
-    output_format: 'conf',
+    output_format: 'lua',
     preview_theme: 'dark',
     global,
     themes,
@@ -186,7 +186,7 @@ export function formatConf(state) {
 
 export function formatLua(state) {
   const lines = [];
-  lines.push('local hg = require("hyprglass")');
+  lines.push('local hg = hl.plugin.hyprglass');
   lines.push('');
   lines.push('hg.config({');
   lines.push(`  enabled = ${state.enabled ? 'true' : 'false'},`);
@@ -195,7 +195,7 @@ export function formatLua(state) {
   globalFields.forEach((field) => {
     lines.push(`  ${field.key} = ${formatValue(field, state.global[field.key])},`);
   });
-  lines.push(`  tint_color = "${serializeTintState(state.global.tint_color)}",`);
+  lines.push(`  tint_color = ${serializeTintState(state.global.tint_color)},`);
   lines.push('  dark = {');
   themeFields.forEach((field) => {
     lines.push(`    ${field.key} = ${formatValue(field, state.themes.dark[field.key])},`);

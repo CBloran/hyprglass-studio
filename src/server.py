@@ -21,7 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 HOME = Path.home()
-CONFIG_PATH = HOME / ".config/hypr/UserConfigs/Hyprglass.conf"
+CONFIG_PATH = HOME / ".config/hypr/HyprglassStudio.lua"
 BACKUP_DIR = HOME / ".config/hypr/backups/hyprglass-studio"
 PREVIEW_DIR = Path("/tmp/hyprglass-studio")
 VALIDATOR = ROOT.parent / "scripts" / "ValidateHyprglassConf.sh"
@@ -70,21 +70,6 @@ def backup_current(prefix: str) -> Path:
 
 
 def _preserve_default_preset(new_content: str) -> str:
-    if not CONFIG_PATH.exists():
-        return new_content
-    try:
-        existing = CONFIG_PATH.read_text(encoding="utf-8")
-    except OSError:
-        return new_content
-    match = re.search(r"^\s*default_preset\s*=\s*(.+)$", existing, re.MULTILINE)
-    if match:
-        preset_value = match.group(1).strip()
-        new_content = re.sub(
-            r"default_preset\s*=\s*\S+",
-            f"default_preset = {preset_value}",
-            new_content,
-            count=1,
-        )
     return new_content
 
 
@@ -94,33 +79,25 @@ def write_config(content: str) -> None:
 
 
 def validate_config(content: str) -> tuple[bool, list[str]]:
-    """Validate config content using the bundled shell validator.
-
-    Writes the content to a temporary file and invokes ValidateHyprglassConf.sh
-    so that validation logic stays in one place. Returns (ok, errors).
-    """
-    if not VALIDATOR.exists():
-        return False, ["validator script not found"]
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".conf", delete=False) as tmp:
+    if "hl.plugin.hyprglass" not in content:
+        return False, ["not a Lua config: expected hl.plugin.hyprglass"]
+    luac = shutil.which("luac") or shutil.which("luac5.4") or shutil.which("luac5.1")
+    if not luac:
+        return True, []
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".lua", delete=False) as tmp:
         tmp.write(content)
         tmp_path = Path(tmp.name)
-
     try:
         result = subprocess.run(
-            ["bash", str(VALIDATOR), str(tmp_path)],
-            capture_output=True,
-            text=True,
-            check=False,
+            [luac, "-p", str(tmp_path)], capture_output=True, text=True, check=False
         )
         if result.returncode == 0:
             return True, []
-        errors = [line.strip() for line in result.stderr.splitlines() if line.strip()]
-        if not errors:
-            errors = ["validation failed"]
-        return False, errors
+        errors = [l.strip() for l in result.stderr.splitlines() if l.strip()]
+        return False, errors or ["lua syntax error"]
     finally:
         tmp_path.unlink(missing_ok=True)
+
 
 
 def reload_hyprland() -> None:
@@ -130,7 +107,13 @@ def reload_hyprland() -> None:
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-
+    subprocess.run(
+        ["hyprctl", "eval",
+         'dofile(os.getenv("HOME") .. "/.config/hypr/HyprglassStudio.lua")'],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 def _check_token(handler: SimpleHTTPRequestHandler) -> bool:
     """Return True if the request is authenticated (or auth is disabled).

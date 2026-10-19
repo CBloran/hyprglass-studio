@@ -155,7 +155,7 @@ function exportText() {
 }
 
 function liveConfigText() {
-  return formatConf(state);
+  return state.output_format === 'lua' ? formatLua(state) : formatConf(state);
 }
 
 const API_TIMEOUT_MS = 15000;
