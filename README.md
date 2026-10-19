@@ -30,7 +30,7 @@ For this to work, the user's main `Hyprglass.lua` must load the generated Studio
 
 ```lua
 pcall(dofile, os.getenv("HOME") .. "/.config/hypr/HyprglassStudio.lua")
-
+```
 > Real-time Liquid Glass effects for the Hyprland Wayland compositor.
 
 # HyprGlass Studio
